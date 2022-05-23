@@ -136,6 +136,13 @@ class Hyperplane(tuple):
 
 class Pointer(Symbol):
 
+    def __init_finalize__(self, *args, pointee=None, **kwargs):
+        super().__init_finalize__(*args, **kwargs)
+        self.pointee = pointee
+
+    def _hashable_content(self):
+        return super()._hashable_content() + (self.pointee,)
+
     @property
     def _C_typename(self):
         return '%s*' % super()._C_typename
@@ -148,6 +155,9 @@ class Pointer(Symbol):
         if self.dtype is np.void:
             return c_void_p
         return super()._C_ctype
+
+    # Pickling support
+    _pickle_kwargs = Symbol._pickle_kwargs + ['pointee']
 
 
 # ctypes subtypes

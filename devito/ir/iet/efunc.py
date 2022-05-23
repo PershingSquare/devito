@@ -15,6 +15,7 @@ from devito.types import Pointer, PThreadArray, SharedData, ThreadArray, Symbol
 
 __all__ = ['ElementalFunction', 'ElementalCall', 'make_efunc',
            'EntryFunction', 'ThreadFunction', 'SharedDataInitFunction', 'make_thread_ctx',
+           'AsyncCallable', 'AsyncCall',
            'DeviceFunction', 'DeviceCall']
 
 
@@ -109,6 +110,22 @@ class EntryFunction(Callable):
 ThreadCtx = namedtuple('ThreadCtx', 'threads sdata funcs init activate finalize')
 
 
+class AsyncCallable(Callable):
+
+    """
+    An async-hronizable Callable (but still synchronous).
+    """
+
+    def __init__(self, name, body, retval, parameters=None, prefix='static',
+                 sync_ops=None):
+        super().__init__(name, body, retval, parameters=parameters, prefix=prefix)
+        self.sync_ops = sync_ops
+
+
+class AsyncCall(Call):
+    pass
+
+
 class ThreadFunction(Callable):
 
     """
@@ -126,7 +143,7 @@ class ThreadFunction(Callable):
         # The pthread entry point expects exactly one argument -- of type void* --
         # and must return a void*
         retval = 'void*'
-        parameter = Pointer(name='_%s' % sdata.name, dtype=np.void)
+        parameter = Pointer(name='_%s' % sdata.name, dtype=np.void, pointee=sdata)
 
         # Unpack `sdata`'s known fields
         unpack = [
@@ -264,7 +281,7 @@ def _make_thread_func(name, iet, root, threads, sregistry):
     dynamic_parameters = diff_parameters(iet, root, [sid])
     sdata = SharedData(
         name=sregistry.make_name(prefix='sdata'),
-        npthreads=threads.size,
+        threads=threads,
         dynamic_fields=dynamic_parameters
     )
     sbase = sdata.indexed

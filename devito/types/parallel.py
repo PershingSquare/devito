@@ -119,9 +119,13 @@ class ThreadArray(ArrayObject):
         try:
             return as_tuple(kwargs['dimensions']), as_tuple(kwargs['dimensions'])
         except KeyError:
+            pass
+        try:
+            nthreads = kwargs['threads'].size
+        except KeyError:
             nthreads = kwargs['npthreads']
-            dim = CustomDimension(name='wi', symbolic_size=nthreads)
-            return (dim,), (dim,)
+        dim = CustomDimension(name='wi', symbolic_size=nthreads)
+        return (dim,), (dim,)
 
     @property
     def dim(self):
@@ -171,8 +175,9 @@ class SharedData(ThreadArray):
 
     _known_fields = (_symbolic_constant, _symbolic_id, _symbolic_flag)
 
-    def __init_finalize__(self, *args, **kwargs):
+    def __init_finalize__(self, *args, threads=None, **kwargs):
         self.dynamic_fields = tuple(kwargs.pop('dynamic_fields', ()))
+        self.threads = threads
 
         super().__init_finalize__(*args, **kwargs)
 

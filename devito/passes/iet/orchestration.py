@@ -5,7 +5,7 @@ from sympy import Or
 
 from devito.data import FULL
 from devito.ir.iet import (Call, Callable, Conditional, List, SyncSpot, FindNodes,
-                           Transformer, BlankLine, BusyWait, DummyExpr,
+                           Transformer, BlankLine, BusyWait, DummyExpr, AsyncCall,
                            derive_parameters, make_thread_ctx)
 from devito.passes.iet.engine import iet_pass
 from devito.passes.iet.langbase import LangBB
@@ -74,6 +74,10 @@ class Orchestrator(object):
         name = self.sregistry.make_name(prefix='copy_device_to_host')
         body = List(body=tuple(preactions) + iet.body + tuple(postactions))
         tctx = make_thread_ctx(name, body, root, npthreads, sync_ops, self.sregistry)
+
+        #TODO OO
+        return tctx.funcs[0]
+
         pieces.funcs.extend(tctx.funcs)
 
         # Schedule computation to the first available thread
@@ -257,7 +261,7 @@ class Orchestrator(object):
         return iet
 
     @iet_pass
-    def process(self, iet):
+    def process(self, iet, root=None):
         sync_spots = FindNodes(SyncSpot).visit(iet)
         if not sync_spots:
             return iet, {}
@@ -296,11 +300,14 @@ class Orchestrator(object):
                 mapper = as_mapper(n.sync_ops, lambda i: type(i))
                 for _type in sorted(mapper, key=key):
                     try:
-                        subs[n] = cbks[_type](subs.get(n, n), mapper[_type], pieces, iet)
+                        subs[n] = cbks[_type](subs.get(n, n), mapper[_type], pieces, root)
                     except KeyError:
                         pass
 
         iet = Transformer(subs).visit(iet)
+
+        for n in FindNodes(AsyncCall).visit(iet):
+            from IPython import embed; embed()
 
         # Add initialization and finalization code
         init = List(body=pieces.init, footer=c.Line())
