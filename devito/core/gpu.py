@@ -287,8 +287,9 @@ class DeviceCustomOperator(DeviceOperatorMixin, CustomOperator):
         parizer = cls._Target.Parizer(sregistry, options, platform, compiler)
 
         def orchestrate(graph):
-            split_async_compute(graph, sregistry=sregistry)
-            cls._Target.Orchestrator(sregistry).process(graph, root=graph.root)
+            #TODO
+            #split_async_compute(graph, sregistry=sregistry)
+            cls._Target.Orchestrator(sregistry).process(graph)  #, root=graph.root)
 
         return {
             'parallel': parizer.make_parallel,
