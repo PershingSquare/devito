@@ -6,6 +6,10 @@
 #
 # RUN:
 #   docker run --rm -it devito/intel:1.0
+#
+# RUN a few tests [TOFIX]:
+#   docker run --rm --name testrun 'devito/intel:1.0' pytest -m "not parallel" tests/test_operator.py
+#
 ##############################################################
 # Inherited from: https://github.com/intel/oneapi-containers/blob/master/images/docker/hpckit/Dockerfile.ubuntu-18.04
 # Copyright (c) 2019-2020 Intel Corporation.
@@ -33,9 +37,8 @@ RUN python3 -m venv /venv
 RUN /venv/bin/pip install --no-cache-dir --upgrade pip
 RUN /venv/bin/pip install --no-cache-dir jupyter
 RUN /venv/bin/pip install --no-cache-dir wheel
-RUN /venv/bin/pip install --no-cache-dir -r /app/requirements.txt
-RUN /venv/bin/pip install --no-cache-dir -r /app/requirements-optional.txt
 RUN . /opt/intel/oneapi/mpi/latest/env/vars.sh && /venv/bin/pip install --no-cache-dir -r /app/requirements-mpi.txt
+RUN /venv/bin/pip install --no-cache-dir devito
 RUN rm -rf ~/.cache/pip
 
 ADD ./devito /app/devito
