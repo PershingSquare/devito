@@ -319,13 +319,13 @@ def generate_block_shapes(blockable, args, level):
         for bs in list(ret):
             handle = []
             for v in options['blocksize-l1']:
-                # To be a valid blocksize, it must be smaller than and divide evenly
-                # the parent's block size
-                if all(v <= i and i % v == 0 for _, i in bs):
+                # To be a valid blocksize, it must be strictly smaller than
+                # and divide evenly the parent's block size
+                if all(v < i and i % v == 0 for _, i in bs):
                     ret.append(bs + tuple((d.step, v) for d in level_1))
             ret.remove(bs)
 
-    # Generate level-n (n > 1) block shapes
+    # Generate level-n (n > 2) block shapes
     # TODO -- currently, there's no Operator producing depth>2 hierarchical blocking,
     # so for simplicity we ignore this for the time being
 
