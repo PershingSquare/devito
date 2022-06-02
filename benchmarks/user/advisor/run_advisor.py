@@ -78,7 +78,8 @@ def run_with_advisor(path, output, name, exec_args):
         os.environ['DEVITO_LANGUAGE'] = 'openmp'
 
         # Thread pinning is strongly recommended for reliable results.
-        # We support thread pinning via numactl
+        # This script is using numactl for this purpose. Users may want to set their
+        # own pinning: https://hpc-wiki.info/hpc/Binding/Pinning
         try:
             ret = check_output(['numactl', '--show']).decode("utf-8")
             ret = dict(i.split(':') for i in ret.split('\n') if i)
@@ -99,7 +100,6 @@ def run_with_advisor(path, output, name, exec_args):
         #     `stackoverflow.com/questions/17053671/python-how-do-you-stop-numpy-from-multithreading`  # noqa
         os.environ['NUMEXPR_NUM_THREADS'] = '1'
 
-
     # To build a roofline with Advisor, we need to run two analyses back to
     # back, `survey` and `tripcounts`.
 
@@ -118,7 +118,7 @@ def run_with_advisor(path, output, name, exec_args):
         '-run-pass-thru=--no-altstack',  # Avoids `https://software.intel.com/en-us/vtune-amplifier-help-error-message-stack-size-is-too-small`  # noqa
         '-run-pass-thru=-timestamp=sys',  # Avoids 'VTune Amplifier may detect which timer source to use incorrectly on Intel® Xeon® processor E5-XXXX processors (200287361)' # noqa
         '-strategy ldconfig:notrace:notrace',  # Avoids `https://software.intel.com/en-us/forums/intel-vtune-amplifier-xe/topic/779309`  # noqa
-        '-start-paused',  # The generated code will enable/disable Advisor on a loop basis according to the decorated pragmas
+        '-start-paused',  # The generated code will enable/disable Advisor on a loop basis according to the decorated pragmas  # noqa
     ]
     advisor_flops = [
         '--collect=tripcounts',
@@ -130,8 +130,8 @@ def run_with_advisor(path, output, name, exec_args):
     ]
     py_cmd = [sys.executable, str(path)] + exec_args.split()
 
-    # Before collecting the `survey` and `tripcounts` a "pure" python run to warmup the jit cache
-    # is preceded
+    # Before collecting the `survey` and `tripcounts` a "pure" python run to warmup the
+    # jit cache is preceded
 
     log('Starting Intel Advisor\'s `roofline` analysis for `%s`' % name)
     dt = datetime.datetime.now()
