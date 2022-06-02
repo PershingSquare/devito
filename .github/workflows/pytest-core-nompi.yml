@@ -153,7 +153,7 @@ jobs:
       if: runner.os == 'linux'
       run : |
           if [ "${{ matrix.arch }}" != 'icc' ]; then
-              sudo apt-get install -y gcc
+              sudo apt-get install -y ${{ matrix.arch }}
           fi
 
     - name: Set tests (reduced number for OSX)
