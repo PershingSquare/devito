@@ -179,17 +179,9 @@ class Operator(Callable):
         # Python-level (i.e., compile time) and C-level (i.e., run time) performance
         profiler = create_profile('timers')
 
-        # Lower input expressions
-        expressions = cls._lower_exprs(expressions, **kwargs)
-
-        # Group expressions based on iteration spaces and data dependences
-        clusters = cls._lower_clusters(expressions, profiler, **kwargs)
-
-        # Lower Clusters to a ScheduleTree
-        stree = cls._lower_stree(clusters, **kwargs)
-
-        # Lower ScheduleTree to an Iteration/Expression Tree
-        iet, byproduct = cls._lower_iet(stree, profiler, **kwargs)
+        # Lower the input expressions into an IET
+        irs, byproduct = cls._lower(expressions, profiler, **kwargs)
+        expressions, clusters, _, _, iet = irs
 
         # Make it an actual Operator
         op = Callable.__new__(cls, **iet.args)
@@ -238,6 +230,28 @@ class Operator(Callable):
         pass
 
     # Compilation -- Expression level
+
+    @classmethod
+    def _lower(cls, expressions, profiler, **kwargs):
+        """
+        Perform the lowering Expressions -> Clusters -> ScheduleTree -> IET.
+        """
+        # [Eq] -> [LoweredEq]
+        expressions = cls._lower_exprs(expressions, **kwargs)
+
+        # [LoweredEq] -> [Clusters]
+        clusters = cls._lower_clusters(expressions, profiler, **kwargs)
+
+        # [Clusters] -> ScheduleTree
+        stree = cls._lower_stree(clusters, **kwargs)
+
+        # ScheduleTree -> unbounded IET
+        uiet = cls._lower_uiet(stree, **kwargs)
+
+        # unbounded IET -> IET
+        iet, byproduct = cls._lower_iet(uiet, profiler, **kwargs)
+
+        return (expressions, clusters, stree, uiet, iet), byproduct
 
     @classmethod
     def _initialize_state(cls, **kwargs):
@@ -368,11 +382,23 @@ class Operator(Callable):
 
     @classmethod
     @timed_pass(name='lowering.IET')
-    def _lower_iet(cls, stree, profiler, **kwargs):
+    def _lower_uiet(cls, stree, **kwargs):
+        """
+        Turn a ScheduleTree into an unbounded Iteration/Expression tree, that is
+        in essence a "floating" IET where one or more variables may be unbounded
+        (i.e., no definition placed yet).
+        """
+        # Build an unbounded IET from a ScheduleTree
+        uiet = iet_build(stree)
+
+        return uiet
+
+    @classmethod
+    @timed_pass(name='lowering.IET')
+    def _lower_iet(cls, uiet, profiler, **kwargs):
         """
         Iteration/Expression tree lowering:
 
-            * Turn a ScheduleTree into an Iteration/Expression tree;
             * Introduce distributed-memory, shared-memory, and SIMD parallelism;
             * Introduce optimizations for data locality;
             * Finalize (e.g., symbol definitions, array casts)
@@ -380,16 +406,13 @@ class Operator(Callable):
         name = kwargs.get("name", "Kernel")
         sregistry = kwargs['sregistry']
 
-        # Build an IET from a ScheduleTree
-        iet = iet_build(stree)
-
         # Analyze the IET Sections for C-level profiling
-        profiler.analyze(iet)
+        profiler.analyze(uiet)
 
         # Wrap the IET with an EntryFunction (a special Callable representing
         # the entry point of the generated library)
-        parameters = derive_parameters(iet, True)
-        iet = EntryFunction(name, iet, 'int', parameters, ())
+        parameters = derive_parameters(uiet, True)
+        iet = EntryFunction(name, uiet, 'int', parameters, ())
 
         # Lower IET to a target-specific IET
         graph = Graph(iet)
