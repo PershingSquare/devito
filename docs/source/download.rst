@@ -7,9 +7,8 @@ There are three main approaches to installing Devito.
 For those looking for a quick “out-of-the-box” way to try Devito, we recommend
 the route of `Docker installation`_.
 For those looking to use Devito alongside other packages as part of a project, we support
-`pip installation`_. If you are looking to develop for Devito, you might benefit from
-following the `conda installation`_  that includes all the bells and whistles we
-recommend when developing for Devito.
+`pip installation`_. When developing for Devito, you might benefit from
+following the `conda installation`_ .
 
 
 Docker installation
@@ -19,8 +18,16 @@ You can install and run Devito via Docker_:
 
 .. _Docker: https://www.docker.com/  
 
+There are several "tags" for the devito docker images. We provide `Docker for CPUs`_
+and `Docker for GPUs`_ depending on the platform you want to deploy Devito. These are:
+
 Docker for CPUs
 ```````````````
+Available images:
+
+- cpu-dev: for the latest development version (current github master)
+- cpu-latest: for the latest github release
+- cpu-vX.X.X: for a specific release (Release tags: https://github.com/devitocodes/devito/tags)
 
 .. code-block:: shell
 
@@ -46,8 +53,17 @@ Please also review these commands within the dockerfile itself:
 
 Docker for GPUs
 ```````````````
+The GPU image differs from the CPU image regarding the additional compilers and toolkits necessary to run on GPUs. It contains the same installation and usage of Devito as the CPU image.
 
-To run the GPU version docker it is necessary to install the `Nvidia container toolkit <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-nvidia-container-toolkit>`_.
+Available images:
+
+- gpu-dev: for the latest development version (current github master)
+- gpu-latest: for the latest github release
+- gpu-vX.X.X: for a specific release (Release tags: https://github.com/devitocodes/devito/tags)
+
+Tags for several devito releases can be found here: https://github.com/devitocodes/devito/tags
+
+NOTE: To run the GPU version docker it is necessary to first install the `Nvidia container toolkit <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-nvidia-container-toolkit>`_.
 
 .. code-block:: shell
 
@@ -63,7 +79,6 @@ To run the GPU version docker it is necessary to install the `Nvidia container t
 
 These sample commands above have only been included as illustrations of typical
 uses of Devito inside a container. They are not required to be run in that order.
-Please also review these commands within the dockerfile itself: `Dockerfile <https://github.com/devitocodes/devito/blob/master/docker/Dockerfile>`_.
 
 1. Command 1 pulls the docker image of Devito in your machine.
 
@@ -104,6 +119,17 @@ To install Devito (without the tutorials and examples), follow:
 .. code-block:: shell
 
    pip install devito
+
+You may also install additional/optional packages via:
+
+- extras : optional dependencies for Jupyter noetbooks, plotting, benhmarking
+- mpi : optional dependencies for MPI (mpi4py)
+- nvidia : optional dependencies for targetting GPU deployment
+
+.. code-block:: shell
+
+   pip install devito[extras,mpi,nvidia]
+
 
 .. _pip package: https://pypi.org/project/devito/
 
