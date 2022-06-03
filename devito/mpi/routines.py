@@ -17,7 +17,7 @@ from devito.mpi import MPI
 from devito.symbolics import (Byref, CondNe, FieldFromPointer, FieldFromComposite,
                               IndexedPointer, Macro, cast_mapper, subs_op_args)
 from devito.tools import dtype_to_mpitype, dtype_to_ctype, flatten, generator
-from devito.types import Array, Dimension, Symbol, LocalObject, CompositeObject
+from devito.types import Array, Dimension, Eq, Symbol, LocalObject, CompositeObject
 from devito.types.dense import AliasFunction
 
 __all__ = ['HaloExchangeBuilder', 'mpi_registry']
@@ -29,12 +29,14 @@ class HaloExchangeBuilder(object):
     Build IET-based routines to implement MPI halo exchange.
     """
 
-    def __new__(cls, mode, sregistry, **generators):
-        obj = object.__new__(mpi_registry[mode])
+    def __new__(cls, mpimode, generators=None, lowerer=None, **kwargs):
+        obj = object.__new__(mpi_registry[mpimode])
 
-        obj._sregistry = sregistry
+        obj._lowerer = lowerer
+        obj._kwargs = kwargs
 
         # Unique name generators
+        generators = generators or {}
         obj._gen_msgkey = generators.get('msg', generator())
         obj._gen_commkey = generators.get('comm', generator())
         obj._gen_compkey = generators.get('comp', generator())
@@ -49,7 +51,7 @@ class HaloExchangeBuilder(object):
 
     @property
     def sregistry(self):
-        return self._sregistry
+        return self._kwargs['sregistry']
 
     @property
     def efuncs(self):
@@ -315,19 +317,23 @@ class BasicHaloExchangeBuilder(HaloExchangeBuilder):
             f_indices.append(offset + (d.root if d not in hse.loc_indices else 0))
 
         if swap is False:
-            eq = DummyEq(buf[buf_indices], f[f_indices])
+            eq = Eq(buf[buf_indices], f[f_indices])
             name = 'gather%s' % key
         else:
-            eq = DummyEq(f[f_indices], buf[buf_indices])
+            eq = Eq(f[f_indices], buf[buf_indices])
             name = 'scatter%s' % key
 
-        iet = Expression(eq)
-        for i, d in reversed(list(zip(buf_indices, buf_dims))):
-            # The -1 below is because an Iteration, by default, generates <=
-            iet = Iteration(iet, i, d.symbolic_size - 1, properties=(PARALLEL, AFFINE))
+        eqns = []
+        eqns.extend([Eq(i.symbolic_min, 0) for i in buf_indices])
+        eqns.extend([Eq(i.symbolic_max, d.symbolic_size - 1)
+                     for d, i in zip(buf_dims, buf_indices)])
+        eqns.append(eq)
+
+        irs, _ = self._lowerer(eqns + [eq], **self._kwargs)
 
         parameters = [buf] + list(buf.shape) + [f] + f_offsets
-        return CopyBuffer(name, iet, parameters)
+
+        return CopyBuffer(name, irs.uiet, parameters)
 
     def _make_sendrecv(self, f, hse, key, **kwargs):
         comm = f.grid.distributor._obj_comm

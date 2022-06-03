@@ -2281,9 +2281,9 @@ class TestIsotropicAcoustic(object):
 
 
 if __name__ == "__main__":
-    configuration['mpi'] = True
+    configuration['mpi'] = 'diag2'
     # TestDecomposition().test_reshape_left_right()
-    # TestOperatorSimple().test_trivial_eq_2d()
+    TestOperatorSimple().test_trivial_eq_2d()
     # TestOperatorSimple().test_num_comms('f[t,x-1,y] + f[t,x+1,y]', {'rc', 'lc'})
     # TestFunction().test_halo_exchange_bilateral()
     # TestSparseFunction().test_ownership(((1., 1.), (1., 3.), (3., 1.), (3., 3.)))
@@ -2292,4 +2292,4 @@ if __name__ == "__main__":
     # TestOperatorAdvanced().test_nontrivial_operator()
     # TestOperatorAdvanced().test_interpolation_dup()
     # TestOperatorAdvanced().test_injection_wodup()
-    TestIsotropicAcoustic().test_adjoint_F_no_omp()
+    #TestIsotropicAcoustic().test_adjoint_F_no_omp()

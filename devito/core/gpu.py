@@ -134,7 +134,7 @@ class DeviceNoopOperator(DeviceOperatorMixin, CoreOperator):
         sregistry = kwargs['sregistry']
 
         # Distributed-memory parallelism
-        mpiize(graph, sregistry=sregistry, options=options)
+        mpiize(graph, **kwargs)
 
         # GPU parallelism
         parizer = cls._Target.Parizer(sregistry, options, platform, compiler)
@@ -203,7 +203,7 @@ class DeviceAdvOperator(DeviceOperatorMixin, CoreOperator):
         sregistry = kwargs['sregistry']
 
         # Distributed-memory parallelism
-        mpiize(graph, sregistry=sregistry, options=options)
+        mpiize(graph, **kwargs)
 
         # Lower BlockDimensions so that blocks of arbitrary shape may be used
         relax_incr_dimensions(graph)
@@ -289,7 +289,7 @@ class DeviceCustomOperator(DeviceOperatorMixin, CustomOperator):
         return {
             'parallel': parizer.make_parallel,
             'orchestrate': partial(orchestrator.process),
-            'mpi': partial(mpiize, sregistry=sregistry, options=options),
+            'mpi': partial(mpiize, **kwargs),
             'linearize': partial(linearize, mode=options['linearize'],
                                  sregistry=sregistry),
             'prodders': partial(hoist_prodders),
